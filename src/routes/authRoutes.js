@@ -1,18 +1,44 @@
-const express= require('express');
-const mongoose=require('mongoose');
-const User=mongoose.model('User');
+const express = require('express');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const User = mongoose.model('User');
 
+const router = express.Router();
 
-const router =express.Router();
+router.post('/signup', async (req, res) => {
+    console.log(req.body);
+    const { email, password } = req.body;
+    try {
 
-router.post('/signup',async(req,res)=>{
-    // console.log(req.body);
-    const {email,password}=req.body;
+        const user = new User({ email, password });
+        await user.save();
 
-    const user =new User({email,password});
-    await user.save();
+        const token = jwt.sign({ userId: user._id }, 'MY_SECRET_KEY');
+        res.send({ token });
+        // res.send('You made a post request');
+    } catch (err) {
+        return res.status(422).send(err.message);
+    }
+});
+router.post('/signin',async(req,res)=>{
+    const{ email,password } = req.body;
 
-    res.send('You made a post request');
+    if(!email || !password){
+        return res.status(422).send({error:'Must provide email and password'});
+    }
+    const user = await Use.findOne({email});
+    if(!user){
+        return res.status(422).send({error:'Email not found'});
+    }
+    try{
+        await user.comparePassword(password);
+        const token=jwt.sign({userId:user._id},'MY_SECRET_KEY')
+
+        res.send({token})
+
+    }catch(err){
+        return res.status(422).send({error:'Invalid password or email'});
+    }
 });
 
-module.exports=router;
+module.exports = router;
